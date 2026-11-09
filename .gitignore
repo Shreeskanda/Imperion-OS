@@ -1,0 +1,28 @@
+# Compiled Class Files
+bin/
+*.class
+
+# Build and scratch artifacts
+scratch/
+*.exe
+
+# Logs and runtime caches
+*.log
+data/logs/*
+!data/logs/.gitkeep
+data/cache/*
+!data/cache/.gitkeep
+data/trash/*
+!data/trash/.gitkeep
+
+# Personal runtime biometric captures
+data/security/face_enrolled.png
+data/security/live_scan.png
+
+# IDE and OS metadata
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,28 @@
+======================================================================
+  WELCOME TO JAVAOS — NEON WORKSTATION SIMULATOR
+======================================================================
+
+JavaOS is a futuristic, cyberpunk-themed desktop simulator crafted
+entirely in pure Java.
+
+KEY CAPABILITIES:
+* File Manager: Sandboxed virtual filesystem inside javaos/data/home
+  Supports folder navigation, file creation, editing, deletion to Trash,
+  and safe restoration.
+* Notepad: Multi-document text editor with line numbers, status bar,
+  and keyboard shortcuts (Ctrl+S, Ctrl+N, Ctrl+O).
+* Calculator: Interactive arithmetic & scientific math calculator.
+* JavaOS Terminal: Command interpreter featuring help, ls, pwd, cat,
+  write, mkdir, touch, search, sysinfo, uptime, theme, and more.
+* System Monitor: Live telemetry of JVM heap, thread count, runtime,
+  and host metrics.
+* Calendar & Clock: Live digital clock with calendar planner.
+* Settings: Switch neon themes (Cyan, Synthwave, Matrix, Amber),
+  change wallpapers, and configure system paths.
+* VICTUS Integration: Dedicated subprocess bridge for your Python
+  assistant (Victus_Ollama_Integrated.py) with live logs and safety locks.
+
+Created for: Shreeskanda
+System Build: 2026.10-NEON
+Platform: Windows Java 27 Desktop Shell
+======================================================================

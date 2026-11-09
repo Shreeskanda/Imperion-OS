@@ -1,0 +1,14 @@
+{
+  "created_at": 1793513218.285104,
+  "sample_count": 12,
+  "mean_geom": [
+    0.6494994686837577,
+    1.1239820986989872,
+    0.49248839970395375,
+    1.2610238377137697,
+    1.1988064735236967,
+    1.0
+  ],
+  "enrolled_image": "C:\\Users\\Shreeskanda\\.gemini\\antigravity\\scratch\\JavaOS\\data\\security\\face_enrolled.png",
+  "model_file": "C:\\Users\\Shreeskanda\\.gemini\\antigravity\\scratch\\JavaOS\\data\\security\\face_model.xml"
+}
