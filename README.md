@@ -1,4 +1,4 @@
-# 🌌 IMPERION OS
+# <img src="data/assets/imperion_icon.png" width="36" height="36" align="center" alt="Imperion OS" /> IMPERION OS
 
 > **A Futuristic Cyberpunk Desktop Operating System & Productivity Workstation written entirely in pure Java & Swing.**
 
