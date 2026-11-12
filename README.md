@@ -15,6 +15,50 @@
 
 Everything runs locally on top of the JVM with zero external runtime GUI dependencies.
 
+<p align="center">
+  <img src="docs/screenshots/01_desktop_workspace.jpg" width="100%" alt="IMPERION OS Desktop Environment" />
+</p>
+
+---
+
+## 📸 System Showcase & Visual Review
+
+A detailed look into the IMPERION OS workstation environment, live radar reconnaissance, and system tools:
+
+<table>
+  <tr>
+    <td width="50%">
+      <b>🌌 1. Main Desktop Workspace</b><br/>
+      <i>Particle grid, telemetry HUD, scratchpad & taskbar</i><br/><br/>
+      <img src="docs/screenshots/01_desktop_workspace.jpg" width="100%" alt="Desktop Workspace" />
+    </td>
+    <td width="50%">
+      <b>📡 2. 3D Gyro Proximity Radar</b><br/>
+      <i>3D real-time spatial RF beacon & device positioning</i><br/><br/>
+      <img src="docs/screenshots/02_3d_gyro_radar.jpg" width="100%" alt="3D Gyro Radar" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <b>💻 3. Sandboxed Cyber Terminal</b><br/>
+      <i>Tabbed sessions, shortcut bar & sandboxed commands</i><br/><br/>
+      <img src="docs/screenshots/03_cyber_terminal.png" width="100%" alt="Cyber Terminal" />
+    </td>
+    <td width="50%">
+      <b>🛡️ 4. Security & Threat Scanner</b><br/>
+      <i>Engine audits, process telemetry & hardening advisor</i><br/><br/>
+      <img src="docs/screenshots/04_security_scanner.png" width="100%" alt="Security Scanner" />
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2">
+      <b>🌐 5. NetRunner Web Explorer</b><br/>
+      <i>Cyberpunk web gateway, portal search & host browser bridge</i><br/><br/>
+      <img src="docs/screenshots/05_netrunner_browser.png" width="100%" alt="NetRunner Web Explorer" />
+    </td>
+  </tr>
+</table>
+
 ---
 
 ## ✨ Key Highlights & Features
