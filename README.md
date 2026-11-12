@@ -5,7 +5,7 @@
 [![Java 17+](https://img.shields.io/badge/Java-17%2B-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://microsoft.com)
 [![UI](https://img.shields.io/badge/UI-Java%20Swing%20%2B%202D%20Canvas-00ffff?style=for-the-badge)](https://docs.oracle.com/javase/tutorial/uiswing/)
-[![License](https://img.shields.io/badge/License-MIT-a855f7?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/License-Custom%20Restricted-red?style=for-the-badge)](LICENSE)
 
 ---
 
