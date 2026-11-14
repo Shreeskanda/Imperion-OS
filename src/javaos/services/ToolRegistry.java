@@ -9,6 +9,7 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -52,6 +53,8 @@ public class ToolRegistry {
     private final Map<String, ToolInfo>       toolById = new LinkedHashMap<>();
     private final Map<Department, List<ToolInfo>> byDept = new EnumMap<>(Department.class);
     private static ToolRegistry instance;
+    private volatile boolean detectionComplete = false;
+    private final List<Runnable> detectionListeners = new CopyOnWriteArrayList<>();
 
     // ─────────────────────────── Singleton ─────────────────────────────────
     public static synchronized ToolRegistry getInstance() {
@@ -80,7 +83,7 @@ public class ToolRegistry {
         reg("nmap",      "Nmap",       "nmap",         Department.NETWORKING,    "Network mapper and port scanner",                   "");
         reg("wireshark", "Wireshark",  "wireshark",    Department.NETWORKING,    "Network protocol analyzer (GUI launcher)",           "");
         reg("tshark",    "TShark",     "tshark",       Department.NETWORKING,    "Terminal-based Wireshark",                           "");
-        reg("netcat",    "Netcat",     "ncat",         Department.NETWORKING,    "Network utility for TCP/UDP connections",             "Fallback: nc");
+        reg("netcat",    "Netcat",     "ncat",         Department.NETWORKING,    "Network utility for TCP/UDP connections",             "");
 
         // VULNERABILITY
         reg("openvas",   "Greenbone OpenVAS", "gvm-cli",   Department.VULNERABILITY, "Vulnerability management scanner",             "Linux/WSL");
@@ -147,6 +150,29 @@ public class ToolRegistry {
                 t.resolvedPath = t.executable;
             }
         }
+        markDetectionComplete();
+    }
+
+    /** Register a callback to be called on the detector thread when detection finishes.
+     *  If detection is already complete, the callback is called immediately on the caller's thread. */
+    public synchronized void addDetectionListener(Runnable r) {
+        if (detectionComplete) { r.run(); return; }
+        detectionListeners.add(r);
+    }
+
+    private synchronized void markDetectionComplete() {
+        detectionComplete = true;
+        for (Runnable r : detectionListeners) {
+            try { r.run(); } catch (Exception ignored) {}
+        }
+    }
+
+    public boolean isDetectionComplete() { return detectionComplete; }
+
+    /** Forces a full re-detection of all registered tools and notifies listeners. */
+    public void redetect() {
+        detectionComplete = false;
+        detectAll();
     }
 
     /** Resolves the executable path via PATH or standard Windows directories. */

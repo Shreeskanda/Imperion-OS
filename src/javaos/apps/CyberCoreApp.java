@@ -56,6 +56,8 @@ public class CyberCoreApp extends OSApplication {
     private JPanel cardPanel;
     private CardLayout cardLayout;
     private String activeDept = Department.NETWORKING.name();
+    // Live badge references so we can update them after background detection
+    private final List<Object[]> liveBadgeEntries = new ArrayList<>(); // each: {JLabel badge, ToolInfo tool}
 
     // ───────────────────────────────────────────────────────────────────
     public CyberCoreApp() {
@@ -104,6 +106,18 @@ public class CyberCoreApp extends OSApplication {
             if (toolCountLabel != null)
                 toolCountLabel.setText(registry.getInstalledCount() + "/" + registry.getTotalCount() + " tools detected");
         });
+
+        // Register live-refresh: when background detection finishes, update all badges
+        registry.addDetectionListener(() -> SwingUtilities.invokeLater(() -> {
+            if (toolCountLabel != null)
+                toolCountLabel.setText(registry.getInstalledCount() + "/" + registry.getTotalCount() + " tools detected");
+            for (Object[] entry : liveBadgeEntries) {
+                JLabel badge  = (JLabel) entry[0];
+                ToolInfo tool = (ToolInfo) entry[1];
+                refreshBadge(badge, tool);
+            }
+            cardPanel.repaint();
+        }));
 
         return root;
     }
@@ -180,9 +194,41 @@ public class CyberCoreApp extends OSApplication {
         toolCountLabel = new JLabel("Detecting tools…");
         toolCountLabel.setFont(FONT_SMALL);
         toolCountLabel.setForeground(TEXT2);
-        toolCountLabel.setBorder(BorderFactory.createEmptyBorder(8, 14, 10, 8));
+        toolCountLabel.setBorder(BorderFactory.createEmptyBorder(8, 14, 2, 8));
         toolCountLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         sidebar.add(toolCountLabel);
+
+        // Re-detect button
+        JButton redetect = new JButton("⟳ Re-detect Tools");
+        redetect.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        redetect.setForeground(CYAN);
+        redetect.setBackground(PANEL2);
+        redetect.setBorderPainted(true);
+        redetect.setFocusPainted(false);
+        redetect.setContentAreaFilled(true);
+        redetect.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER),
+                BorderFactory.createEmptyBorder(5, 14, 7, 8)));
+        redetect.setMaximumSize(new Dimension(200, 32));
+        redetect.setAlignmentX(Component.LEFT_ALIGNMENT);
+        redetect.addActionListener(e -> {
+            toolCountLabel.setText("Re-detecting…");
+            redetect.setEnabled(false);
+            new Thread(() -> {
+                registry.redetect();
+                SwingUtilities.invokeLater(() -> {
+                    toolCountLabel.setText(registry.getInstalledCount() + "/" + registry.getTotalCount() + " tools detected");
+                    for (Object[] entry : liveBadgeEntries) {
+                        JLabel badge  = (JLabel) entry[0];
+                        ToolInfo tool = (ToolInfo) entry[1];
+                        refreshBadge(badge, tool);
+                    }
+                    cardPanel.repaint();
+                    redetect.setEnabled(true);
+                });
+            }, "ToolRegistry-Redetect").start();
+        });
+        sidebar.add(redetect);
 
         return sidebar;
     }
@@ -242,6 +288,7 @@ public class CyberCoreApp extends OSApplication {
     }
 
     // ═══════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════
     // Department panel builder
     // ═══════════════════════════════════════════════════════════════════
     private JScrollPane buildDeptPanel(Department dept) {
@@ -250,16 +297,22 @@ public class CyberCoreApp extends OSApplication {
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBackground(BG);
+        content.setBorder(BorderFactory.createEmptyBorder(0, 14, 20, 14));
 
         // Title bar
-        content.add(buildDeptHeader(dept, tools));
+        JPanel hdr = buildDeptHeader(dept, tools);
+        hdr.setAlignmentX(Component.LEFT_ALIGNMENT);
+        content.add(hdr);
+        content.add(createStrut(10));
 
         // Tool cards
         for (ToolInfo tool : tools) {
-            content.add(Box.createVerticalStrut(6));
-            content.add(buildToolCard(tool));
+            JPanel card = buildToolCard(tool);
+            card.setAlignmentX(Component.LEFT_ALIGNMENT);
+            content.add(card);
+            content.add(createStrut(8));
         }
-        content.add(Box.createVerticalStrut(20));
+        content.add(createStrut(16));
 
         JScrollPane sp = new JScrollPane(content);
         sp.setBackground(BG);
@@ -271,26 +324,44 @@ public class CyberCoreApp extends OSApplication {
         return sp;
     }
 
+    private Component createStrut(int height) {
+        JPanel s = new JPanel();
+        s.setOpaque(false);
+        s.setPreferredSize(new Dimension(0, height));
+        s.setMinimumSize(new Dimension(0, height));
+        s.setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
+        s.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return s;
+    }
+
     private JPanel buildDeptHeader(Department dept, List<ToolInfo> tools) {
         long installed = tools.stream().filter(t -> t.installed).count();
-        JPanel hdr = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 10));
+        JPanel hdr = new JPanel(new BorderLayout());
         hdr.setBackground(PANEL);
-        hdr.setMaximumSize(new Dimension(Integer.MAX_VALUE, 54));
-        hdr.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER));
+        hdr.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
+        hdr.setPreferredSize(new Dimension(0, 48));
+        hdr.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)));
+        hdr.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        left.setBackground(PANEL);
 
         JLabel name = new JLabel(prettyDept(dept));
-        name.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        name.setFont(new Font("Segoe UI", Font.BOLD, 15));
         name.setForeground(CYAN);
 
-        JLabel badge = new JLabel(installed + "/" + tools.size() + " tools");
+        JLabel badge = new JLabel(installed + "/" + tools.size() + " tools available");
         badge.setFont(FONT_SMALL);
         badge.setForeground(installed == tools.size() ? GREEN : (installed > 0 ? AMBER : RED));
         badge.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(installed == tools.size() ? GREEN : (installed > 0 ? AMBER : RED), 1, true),
                 BorderFactory.createEmptyBorder(2, 6, 2, 6)));
 
-        hdr.add(name);
-        hdr.add(badge);
+        left.add(name);
+        left.add(badge);
+        hdr.add(left, BorderLayout.WEST);
         return hdr;
     }
 
@@ -300,36 +371,41 @@ public class CyberCoreApp extends OSApplication {
     private JPanel buildToolCard(ToolInfo tool) {
         JPanel card = new JPanel(new BorderLayout());
         card.setBackground(PANEL);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createEmptyBorder(0, 10, 0, 10),
-                BorderFactory.createLineBorder(BORDER, 1, true)));
+        card.setBorder(BorderFactory.createLineBorder(BORDER, 1, true));
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         // ── Header row ──────────────────────────────────────────────
-        JPanel headerRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        JPanel headerRow = new JPanel(new BorderLayout());
         headerRow.setBackground(PANEL2);
+        headerRow.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 14));
         headerRow.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        JPanel leftHdr = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        leftHdr.setBackground(PANEL2);
 
         JLabel toolName = new JLabel(tool.name);
         toolName.setFont(new Font("Segoe UI", Font.BOLD, 13));
         toolName.setForeground(CYAN);
 
         JLabel statusBadge = statusBadge(tool);
+        // Register for live update after background detection
+        liveBadgeEntries.add(new Object[]{statusBadge, tool});
 
         JLabel versionLbl = new JLabel(tool.installed ? tool.version : "");
         versionLbl.setFont(FONT_SMALL);
         versionLbl.setForeground(TEXT2);
 
-        JLabel arrow = new JLabel("▶");
-        arrow.setFont(FONT_SMALL);
-        arrow.setForeground(TEXT2);
+        leftHdr.add(toolName);
+        leftHdr.add(statusBadge);
+        if (!tool.version.isEmpty()) leftHdr.add(versionLbl);
 
-        headerRow.add(toolName);
-        headerRow.add(statusBadge);
-        if (!tool.version.isEmpty()) headerRow.add(versionLbl);
-        headerRow.add(Box.createHorizontalGlue());
-        headerRow.add(arrow);
+        JLabel arrow = new JLabel("▶");
+        arrow.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        arrow.setForeground(CYAN);
+
+        headerRow.add(leftHdr, BorderLayout.WEST);
+        headerRow.add(arrow, BorderLayout.EAST);
 
         // ── Expandable body ─────────────────────────────────────────
         JPanel body = new JPanel(new BorderLayout());
@@ -626,44 +702,86 @@ public class CyberCoreApp extends OSApplication {
         JPanel p = cfgGrid();
         p.putClientProperty("toolId", "tshark");
 
-        JTextField iface    = field(getDefaultInterface());
+        // Interface combo: populated from tshark -D (index → friendly name)
+        JComboBox<String> ifaceCombo = new JComboBox<>(new String[]{"4 (Wi-Fi)", "1", "2", "3"});
+        ifaceCombo.setBackground(PANEL2);
+        ifaceCombo.setForeground(TEXT);
+        ifaceCombo.setFont(FONT_MONO);
+        // Map from combo display text → tshark index string
+        Map<String, String> ifaceIndex = new LinkedHashMap<>();
+        ifaceIndex.put("4 (Wi-Fi)", "4");
+
         JTextField capFilt  = field("tcp port 80 or port 443");
         JTextField dispFilt = field("http or dns");
         JSpinner count      = spinner(50, 0, 100000);
         JSpinner timeout    = spinner(0, 0, 3600);
         JButton refresh     = smallBtn("Refresh Interfaces");
 
-        refresh.addActionListener(e -> {
-            SwingWorker<String, Void> w = new SwingWorker<>() {
-                @Override protected String doInBackground() {
-                    try {
-                        String tsharkBin = registry.getTool("tshark").resolvedPath;
-                        if (tsharkBin == null || tsharkBin.isEmpty()) tsharkBin = "tshark";
-                        Process pp = new ProcessBuilder(tsharkBin, "-D").redirectErrorStream(true).start();
-                        try (BufferedReader br = new BufferedReader(new InputStreamReader(pp.getInputStream()))) {
-                            StringBuilder sb = new StringBuilder();
-                            String ln;
-                            while ((ln = br.readLine()) != null) sb.append(ln).append("\n");
-                            return sb.toString();
+        // Load interfaces on a background thread
+        Runnable loadInterfaces = () -> {
+            try {
+                ToolInfo tsharkTool = registry.getTool("tshark");
+                String tsharkBin = (tsharkTool != null && tsharkTool.resolvedPath != null
+                        && !tsharkTool.resolvedPath.isEmpty()) ? tsharkTool.resolvedPath : "tshark";
+                ProcessBuilder pb = new ProcessBuilder(tsharkBin, "-D");
+                pb.redirectErrorStream(true);
+                File exeFile = new File(tsharkBin);
+                if (exeFile.exists() && exeFile.getParentFile() != null)
+                    pb.directory(exeFile.getParentFile());
+                Process pp = pb.start();
+                List<String> lines = new ArrayList<>();
+                Map<String, String> idx = new LinkedHashMap<>();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(pp.getInputStream()))) {
+                    String ln;
+                    while ((ln = br.readLine()) != null) {
+                        // Format: "1. \Device\NPF_{...} (Friendly Name)"
+                        java.util.regex.Matcher m = java.util.regex.Pattern
+                                .compile("^(\\d+)\\.\\s+\\S+\\s+\\((.+)\\)$").matcher(ln.trim());
+                        if (m.matches()) {
+                            String index = m.group(1);
+                            String friendly = m.group(2);
+                            String display = index + " (" + friendly + ")";
+                            lines.add(display);
+                            idx.put(display, index);
+                        } else {
+                            // fallback: strip everything before first dot, use index only
+                            java.util.regex.Matcher m2 = java.util.regex.Pattern
+                                    .compile("^(\\d+)\\.").matcher(ln.trim());
+                            if (m2.find()) {
+                                String index = m2.group(1);
+                                String display = index + " – " + ln.trim().replaceAll("^\\d+\\.\\s*", "").trim();
+                                if (display.length() > 60) display = display.substring(0, 60) + "…";
+                                lines.add(display);
+                                idx.put(display, index);
+                            }
                         }
-                    } catch (Exception ex) {
-                        return "1. " + getDefaultInterface();
                     }
                 }
-                @Override protected void done() {
-                    try {
-                        String res = get();
-                        String first = res.lines().findFirst().map(s -> s.replaceAll("^\\d+\\.\\s*", "").trim()).orElse("1");
-                        iface.setText(first.isEmpty() ? "1" : first);
-                    } catch (Exception ignored) {
-                        iface.setText("1");
-                    }
+                pp.waitFor(5, TimeUnit.SECONDS);
+                if (!lines.isEmpty()) {
+                    SwingUtilities.invokeLater(() -> {
+                        ifaceIndex.clear();
+                        ifaceIndex.putAll(idx);
+                        String prev = (String) ifaceCombo.getSelectedItem();
+                        ifaceCombo.removeAllItems();
+                        for (String s : lines) ifaceCombo.addItem(s);
+                        // Try to restore Wi-Fi (index 4) or previous selection
+                        boolean found = false;
+                        for (String s : lines) {
+                            if (s.toLowerCase().contains("wi-fi") || s.startsWith("4 ")) {
+                                ifaceCombo.setSelectedItem(s); found = true; break;
+                            }
+                        }
+                        if (!found && prev != null) ifaceCombo.setSelectedItem(prev);
+                    });
                 }
-            };
-            w.execute();
-        });
+            } catch (Exception ex) { /* keep defaults */ }
+        };
+        refresh.addActionListener(e -> new Thread(loadInterfaces, "TShark-IFace-Loader").start());
+        // Auto-load on creation
+        new Thread(loadInterfaces, "TShark-IFace-Loader").start();
 
-        addRow(p, "Interface:", hbox(iface, refresh));
+        addRow(p, "Interface:", hbox(ifaceCombo, refresh));
         addRow(p, "Capture Filter:", capFilt);
         addRow(p, "Display Filter:", dispFilt);
         addRow(p, "Packet Count:", count);
@@ -671,8 +789,10 @@ public class CyberCoreApp extends OSApplication {
 
         p.putClientProperty("cmdBuilder", (Supplier) () -> {
             List<String> cmd = new ArrayList<>(List.of("tshark"));
-            String ifStr = iface.getText().trim();
-            if (!ifStr.isEmpty()) { cmd.add("-i"); cmd.add(ifStr); }
+            // Use numeric index for reliability
+            String sel = (String) ifaceCombo.getSelectedItem();
+            String idx = sel != null ? ifaceIndex.getOrDefault(sel, sel.split("[\\s(]")[0]) : "4";
+            cmd.add("-i"); cmd.add(idx);
             String cfStr = capFilt.getText().trim();
             if (!cfStr.isEmpty()) { cmd.add("-f"); cmd.add(cfStr); }
             String dfStr = dispFilt.getText().trim();
@@ -1991,24 +2111,30 @@ public class CyberCoreApp extends OSApplication {
     }
 
     private JLabel statusBadge(ToolInfo tool) {
+        JLabel badge = new JLabel();
+        refreshBadge(badge, tool);
+        badge.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        return badge;
+    }
+
+    /** Update a live badge label to reflect current tool detection state. */
+    private void refreshBadge(JLabel badge, ToolInfo tool) {
         String badgeText;
         Color badgeColor;
         if ("N/A".equals(tool.executable) || tool.osNote.contains("Web")) {
             badgeText = "WEB-BASED"; badgeColor = BLUE;
-        } else if (!tool.osNote.isEmpty() && !tool.installed) {
+        } else if (!tool.osNote.isEmpty() && !tool.installed && tool.osNote.toLowerCase().contains("linux")) {
             badgeText = "WSL REQUIRED"; badgeColor = AMBER;
         } else if (tool.installed) {
             badgeText = "INSTALLED"; badgeColor = GREEN;
         } else {
             badgeText = "NOT FOUND"; badgeColor = RED;
         }
-        JLabel badge = new JLabel(badgeText);
-        badge.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        badge.setText(badgeText);
         badge.setForeground(badgeColor);
         badge.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(badgeColor, 1, true),
                 BorderFactory.createEmptyBorder(1, 5, 1, 5)));
-        return badge;
     }
 
     private String installHint(ToolInfo tool) {
