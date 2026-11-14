@@ -153,7 +153,7 @@ public class JavaOS {
 
         applicationManager.registerApp(new AppDescriptor(
                 "cybercore", "IMPERION CYBERCORE", "Unified Cybersecurity Suite — Networking, Forensics, and Diagnostics", AppDescriptor.Category.SYSTEM,
-                javaos.ui.components.CyberpunkIcons.createIcon("SHIELD", 20), true), javaos.apps.CyberCoreApp::new);
+                javaos.ui.components.CyberpunkIcons.createIcon("CYBERCORE", 20), true), javaos.apps.CyberCoreApp::new);
     }
 
     public void launchUI() {

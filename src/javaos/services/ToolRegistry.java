@@ -62,7 +62,9 @@ public class ToolRegistry {
     private ToolRegistry() {
         for (Department d : Department.values()) byDept.put(d, new ArrayList<>());
         registerAll();
-        detectAll();
+        Thread detectorThread = new Thread(this::detectAll, "ToolRegistry-Detector");
+        detectorThread.setDaemon(true);
+        detectorThread.start();
     }
 
     // ─────────────────────────── Registration ──────────────────────────────

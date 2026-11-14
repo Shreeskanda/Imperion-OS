@@ -119,6 +119,11 @@ public final class CyberpunkIcons {
                 case "SECURITY":
                     paintShield(g2, size, accent, secAccent);
                     break;
+                case "CYBERCORE":
+                case "CYBER":
+                case "CORE":
+                    paintCyberCore(g2, size, accent, secAccent);
+                    break;
                 case "VIRUS":
                 case "BUG":
                     paintVirus(g2, size, theme.error, theme.warning);
@@ -593,6 +598,67 @@ public final class CyberpunkIcons {
         g.setStroke(new BasicStroke(Math.max(1.5f, s * 0.08f)));
         g.drawLine((int)(s * 0.35), (int)(s * 0.54), (int)(s * 0.46), (int)(s * 0.66));
         g.drawLine((int)(s * 0.46), (int)(s * 0.66), (int)(s * 0.65), (int)(s * 0.42));
+    }
+
+    /** Futuristic glowing cyber-matrix reactor core icon for IMPERION CYBERCORE */
+    private static void paintCyberCore(Graphics2D g, int s, Color c1, Color c2) {
+        double cx = s / 2.0;
+        double cy = s / 2.0;
+
+        // 1. Outer cyber hexagon matrix shield
+        Path2D.Double hex = new Path2D.Double();
+        int nPoints = 6;
+        double rOuter = s * 0.44;
+        for (int i = 0; i < nPoints; i++) {
+            double angle = Math.toRadians(60 * i - 30);
+            double x = cx + rOuter * Math.cos(angle);
+            double y = cy + rOuter * Math.sin(angle);
+            if (i == 0) hex.moveTo(x, y);
+            else hex.lineTo(x, y);
+        }
+        hex.closePath();
+
+        // Glowing semi-transparent background fill
+        g.setPaint(new RadialGradientPaint(
+                (float) cx, (float) cy, (float) (s * 0.5),
+                new float[]{0.0f, 0.7f, 1.0f},
+                new Color[]{new Color(c1.getRed(), c1.getGreen(), c1.getBlue(), 120),
+                            new Color(c2.getRed(), c2.getGreen(), c2.getBlue(), 40),
+                            new Color(0, 0, 0, 0)}
+        ));
+        g.fill(hex);
+
+        // Outer neon border
+        g.setColor(c1);
+        g.setStroke(new BasicStroke(Math.max(1.5f, s * 0.07f)));
+        g.draw(hex);
+
+        // 2. Corner circuit nodes & trace spokes
+        g.setColor(new Color(c2.getRed(), c2.getGreen(), c2.getBlue(), 180));
+        g.setStroke(new BasicStroke(Math.max(1.0f, s * 0.04f)));
+        for (int i = 0; i < 6; i++) {
+            double angle = Math.toRadians(60 * i - 30);
+            double x1 = cx + (s * 0.22) * Math.cos(angle);
+            double y1 = cy + (s * 0.22) * Math.sin(angle);
+            double x2 = cx + rOuter * Math.cos(angle);
+            double y2 = cy + rOuter * Math.sin(angle);
+            g.drawLine((int) x1, (int) y1, (int) x2, (int) y2);
+        }
+
+        // 3. Inner cyber reticle ring
+        double rInner = s * 0.24;
+        g.setColor(c2);
+        g.setStroke(new BasicStroke(Math.max(1.2f, s * 0.05f)));
+        g.draw(new Ellipse2D.Double(cx - rInner, cy - rInner, rInner * 2, rInner * 2));
+
+        // 4. Glowing Reactor Core
+        double rCore = s * 0.13;
+        g.setPaint(new RadialGradientPaint(
+                (float) cx, (float) cy, (float) rCore,
+                new float[]{0.0f, 0.6f, 1.0f},
+                new Color[]{Color.WHITE, c1, new Color(c2.getRed(), c2.getGreen(), c2.getBlue(), 200)}
+        ));
+        g.fill(new Ellipse2D.Double(cx - rCore, cy - rCore, rCore * 2, rCore * 2));
     }
 
     /** Stylized bug/virus icon for threat display */

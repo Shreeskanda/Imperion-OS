@@ -64,7 +64,7 @@ public class CyberCoreApp extends OSApplication {
                 "IMPERION CYBERCORE",
                 "Unified Cybersecurity Suite — 10 departments, 30+ tools",
                 AppDescriptor.Category.SYSTEM,
-                CyberpunkIcons.createIcon("SHIELD", 20),
+                CyberpunkIcons.createIcon("CYBERCORE", 20),
                 true));
     }
 
@@ -364,11 +364,7 @@ public class CyberCoreApp extends OSApplication {
         JButton btnClear    = neonButton("⌫  Clear",  TEXT2);
         JButton btnSave     = neonButton("⬇  Save",   BLUE);
         btnStop.setEnabled(false);
-
-        if (!tool.installed && !"N/A".equals(tool.executable)) {
-            btnExecute.setEnabled(false);
-            btnExecute.setToolTipText("Tool not installed — " + installHint(tool));
-        }
+        btnExecute.setEnabled(true);
 
         btnClear.addActionListener(e -> output.setText(""));
         btnSave.addActionListener(e -> saveOutput(output, tool.name));
@@ -377,10 +373,10 @@ public class CyberCoreApp extends OSApplication {
             if (procRef[0] != null) {
                 procRef[0].destroy();
                 procRef[0].destroyForcibly();
-                appendOutput(output, "\n[Stopped]\n");
+                appendOutput(output, "\n[Execution stopped by operator]\n");
             }
             btnStop.setEnabled(false);
-            btnExecute.setEnabled(tool.installed || "N/A".equals(tool.executable));
+            btnExecute.setEnabled(true);
         });
 
         // Wire Execute button to config panel via tag
@@ -406,9 +402,56 @@ public class CyberCoreApp extends OSApplication {
                             while ((line = br.readLine()) != null) publish(line + "\n");
                         }
                         procRef[0].waitFor();
-                        publish("[Process exited: " + procRef[0].exitValue() + "]\n");
+                        publish("\n[Process exited with return code: " + procRef[0].exitValue() + "]\n");
                     } catch (IOException ex) {
-                        publish("[Error launching process: " + ex.getMessage() + "]\n");
+                        publish("[Execution Notice] System executable '" + tool.executable + "' was not found on PATH.\n\n");
+                        if ("nmap".equals(tool.id)) {
+                            publish(">>> Initiating Built-in IMPERION OS Port Diagnostic on Target...\n");
+                            String targetIp = "127.0.0.1";
+                            for (int i = 0; i < cmd.size(); i++) {
+                                if (i == cmd.size() - 1 && !cmd.get(i).startsWith("-")) {
+                                    targetIp = cmd.get(i);
+                                }
+                            }
+                            publish("Target: " + targetIp + "\n");
+                            try {
+                                JavaOS os = JavaOS.getInstance();
+                                if (os != null && os.getNetworkScannerService() != null) {
+                                    List<NetworkScannerService.PortAuditResult> results = os.getNetworkScannerService().auditDevicePorts(targetIp);
+                                    publish(String.format("%-8s %-12s %-20s %-22s\n", "PORT", "STATE", "SERVICE", "SECURITY STATUS"));
+                                    publish("------------------------------------------------------------------\n");
+                                    for (NetworkScannerService.PortAuditResult r : results) {
+                                        publish(String.format("%-8d %-12s %-20s %-22s\n", r.port, r.state, r.serviceName, r.riskLevel));
+                                    }
+                                }
+                            } catch (Exception auditEx) {
+                                publish("[Diagnostic Error: " + auditEx.getMessage() + "]\n");
+                            }
+                            publish("\n[Host Integration Guide]\n");
+                            publish("To run external native Nmap binary:\n");
+                            publish("• Download installer: https://nmap.org/download.html\n");
+                            publish("• CLI install: winget install Insecure.Nmap  or  choco install nmap\n");
+                        } else if ("netcat".equals(tool.id)) {
+                            publish(">>> Initiating Built-in TCP Connectivity Test...\n");
+                            String targetHost = "127.0.0.1";
+                            int targetPort = 80;
+                            if (cmd.size() >= 3) {
+                                targetHost = cmd.get(cmd.size() - 2);
+                                try { targetPort = Integer.parseInt(cmd.get(cmd.size() - 1)); } catch (Exception ignored) {}
+                            }
+                            publish("Connecting to " + targetHost + ":" + targetPort + "...\n");
+                            try (java.net.Socket s = new java.net.Socket()) {
+                                long t0 = System.currentTimeMillis();
+                                s.connect(new java.net.InetSocketAddress(targetHost, targetPort), 3000);
+                                long dt = System.currentTimeMillis() - t0;
+                                publish("Connection SUCCESS! Port " + targetPort + " is OPEN and listening (" + dt + "ms).\n");
+                            } catch (Exception sockEx) {
+                                publish("Connection REFUSED / CLOSED: " + sockEx.getMessage() + "\n");
+                            }
+                            publish("\nTo install external Netcat/Ncat: included with Nmap at https://nmap.org/ncat/\n");
+                        } else {
+                            publish("Official Installation:\n" + installHint(tool) + "\n");
+                        }
                     }
                     return null;
                 }
@@ -416,7 +459,7 @@ public class CyberCoreApp extends OSApplication {
                     for (String c : chunks) appendOutput(output, c);
                 }
                 @Override protected void done() {
-                    btnExecute.setEnabled(tool.installed || "N/A".equals(tool.executable));
+                    btnExecute.setEnabled(true);
                     btnStop.setEnabled(false);
                 }
             };
