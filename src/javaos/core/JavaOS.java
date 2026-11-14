@@ -150,6 +150,10 @@ public class JavaOS {
         applicationManager.registerApp(new AppDescriptor(
                 "stickynotes", "Neon Sticky Notes", "Quick desktop notes, task reminders & memory scratchpad", AppDescriptor.Category.PRODUCTIVITY,
                 javaos.ui.components.CyberpunkIcons.createIcon("STICKY", 20), false), javaos.apps.StickyNotesApp::new);
+
+        applicationManager.registerApp(new AppDescriptor(
+                "cybercore", "IMPERION CYBERCORE", "Unified Cybersecurity Suite — Networking, Forensics, and Diagnostics", AppDescriptor.Category.SYSTEM,
+                javaos.ui.components.CyberpunkIcons.createIcon("SHIELD", 20), true), javaos.apps.CyberCoreApp::new);
     }
 
     public void launchUI() {
