@@ -156,21 +156,32 @@ public class ToolRegistry {
         }
         if (isWindows()) {
             List<String> candidates = new ArrayList<>();
+            String userDir = System.getProperty("user.dir", ".");
             String exeLower = executable.toLowerCase();
+
             if (exeLower.equals("wireshark")) {
+                candidates.add(userDir + "\\wireshark\\Wireshark.exe");
+                candidates.add("D:\\skanda\\projects\\JavaOS\\wireshark\\Wireshark.exe");
                 candidates.add("C:\\Program Files\\Wireshark\\Wireshark.exe");
             } else if (exeLower.equals("tshark")) {
+                candidates.add(userDir + "\\wireshark\\tshark.exe");
+                candidates.add("D:\\skanda\\projects\\JavaOS\\wireshark\\tshark.exe");
                 candidates.add("C:\\Program Files\\Wireshark\\tshark.exe");
             } else if (exeLower.equals("nmap")) {
+                candidates.add(userDir + "\\nmap\\nmap.exe");
+                candidates.add("D:\\skanda\\projects\\JavaOS\\nmap\\nmap.exe");
                 candidates.add("C:\\Program Files (x86)\\Nmap\\nmap.exe");
                 candidates.add("C:\\Program Files\\Nmap\\nmap.exe");
             } else if (exeLower.equals("ncat") || exeLower.equals("nc")) {
+                candidates.add(userDir + "\\nmap\\ncat.exe");
+                candidates.add("D:\\skanda\\projects\\JavaOS\\nmap\\ncat.exe");
                 candidates.add("C:\\Program Files (x86)\\Nmap\\ncat.exe");
                 candidates.add("C:\\Program Files\\Nmap\\ncat.exe");
             } else if (exeLower.contains("sysmon")) {
                 candidates.add("C:\\Windows\\System32\\Sysmon64.exe");
                 candidates.add("C:\\Windows\\Sysmon64.exe");
             } else if (exeLower.equals("keepassxc")) {
+                candidates.add(userDir + "\\keepassxc\\KeePassXC.exe");
                 candidates.add("C:\\Program Files\\KeePassXC\\KeePassXC.exe");
                 candidates.add("C:\\Program Files (x86)\\KeePassXC\\KeePassXC.exe");
             }

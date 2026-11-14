@@ -394,6 +394,12 @@ public class CyberCoreApp extends OSApplication {
                 @Override protected Void doInBackground() throws Exception {
                     ProcessBuilder pb = new ProcessBuilder(cmd);
                     pb.redirectErrorStream(true);
+                    if (tool.resolvedPath != null && !tool.resolvedPath.isEmpty()) {
+                        File exeFile = new File(tool.resolvedPath);
+                        if (exeFile.exists() && exeFile.getParentFile() != null) {
+                            pb.directory(exeFile.getParentFile());
+                        }
+                    }
                     try {
                         procRef[0] = pb.start();
                         try (BufferedReader br = new BufferedReader(

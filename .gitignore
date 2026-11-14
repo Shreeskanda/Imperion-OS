@@ -5,6 +5,14 @@ bin/
 # Build and scratch artifacts
 scratch/
 *.exe
+*.dll
+*.zip
+3rd-party-licenses.txt
+licenses/
+nmap/
+wireshark/
+zenmap/
+Hash_Suite_Free_4_1/
 
 # Logs and runtime caches
 *.log
