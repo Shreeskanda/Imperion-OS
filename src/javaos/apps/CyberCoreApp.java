@@ -1,5 +1,8 @@
 package javaos.apps;
 
+import javaos.core.JavaOS;
+import javaos.services.NetworkScannerService;
+import javaos.services.NetworkScannerService.WirelessAirDevice;
 import javaos.services.ToolRegistry;
 import javaos.services.ToolRegistry.Department;
 import javaos.services.ToolRegistry.ToolInfo;
@@ -498,10 +501,19 @@ public class CyberCoreApp extends OSApplication {
         p.putClientProperty("toolId", "nmap");
 
         JTextField target = field("127.0.0.1");
+        JPanel targetSelector = createTargetDeviceSelector(target);
+
         JTextField ports  = field("80,443,8080");
-        String[] scanTypes = {"TCP SYN (-sS)", "TCP Connect (-sT)", "UDP (-sU)",
-                              "Ping (-sP)", "OS Detect (-O)", "Version Detect (-sV)",
-                              "Aggressive (-A)", "Full (-sV -sC -O -A)"};
+        String[] scanTypes = {
+            "TCP SYN (-sS)",
+            "TCP Connect (-sT)",
+            "UDP (-sU)",
+            "Ping Sweep / Host Discovery (-sP)",
+            "OS Detection (-O)",
+            "Version Detection (-sV)",
+            "Aggressive Scan (-A)",
+            "Full Scan (-sV -sC -O -A)"
+        };
         JComboBox<String> scanType = combo(scanTypes);
         JCheckBox verbose  = check("Verbose (-v)");
         JCheckBox noPing   = check("No ping (-Pn)", true);
@@ -509,9 +521,22 @@ public class CyberCoreApp extends OSApplication {
         JCheckBox timing   = check("Timing (-T4)", true);
         JComboBox<String> outFmt = combo(new String[]{"Normal", "XML (-oX)", "Grepable (-oG)"});
 
-        addRow(p, "Target:", target);
+        scanType.addActionListener(e -> {
+            String sel = (String) scanType.getSelectedItem();
+            if (sel != null) {
+                if (sel.contains("Ping Sweep")) {
+                    ports.setEnabled(false);
+                    ports.setText("N/A (Host Discovery)");
+                } else {
+                    ports.setEnabled(true);
+                    if (ports.getText().contains("N/A")) ports.setText("80,443,8080");
+                }
+            }
+        });
+
+        addRow(p, "Target:", targetSelector);
+        addRow(p, "Scan Profile:", scanType);
         addRow(p, "Ports:", ports);
-        addRow(p, "Scan Type:", scanType);
         addRow(p, "Options:", hbox(verbose, noPing, scripts, timing));
         addRow(p, "Output:", outFmt);
 
@@ -523,18 +548,20 @@ public class CyberCoreApp extends OSApplication {
                 if (sel.contains("-sS")) cmd.add("-sS");
                 else if (sel.contains("-sT")) cmd.add("-sT");
                 else if (sel.contains("-sU")) cmd.add("-sU");
-                else if (sel.contains("-sP")) cmd.add("-sP");
+                else if (sel.contains("-sP")) { cmd.add("-sn"); }
                 else if (sel.contains("-O")) { cmd.add("-O"); }
                 else if (sel.contains("-sV") && !sel.contains("Full")) cmd.add("-sV");
                 else if (sel.contains("-A") && !sel.contains("Full")) cmd.add("-A");
                 else if (sel.contains("Full")) { cmd.addAll(List.of("-sV", "-sC", "-O", "-A")); }
             }
             if (verbose.isSelected())  cmd.add("-v");
-            if (noPing.isSelected())   cmd.add("-Pn");
-            if (scripts.isSelected())  cmd.add("-sC");
+            if (noPing.isSelected() && (sel == null || !sel.contains("-sP"))) cmd.add("-Pn");
+            if (scripts.isSelected() && (sel == null || !sel.contains("Full"))) cmd.add("-sC");
             if (timing.isSelected())   cmd.add("-T4");
             String pstr = ports.getText().trim();
-            if (!pstr.isEmpty()) { cmd.add("-p"); cmd.add(pstr); }
+            if (!pstr.isEmpty() && !pstr.contains("N/A") && (sel == null || !sel.contains("-sP"))) {
+                cmd.add("-p"); cmd.add(pstr);
+            }
             String fmt = (String) outFmt.getSelectedItem();
             if (fmt != null && fmt.contains("-oX")) { cmd.add("-oX"); cmd.add("nmap_out.xml"); }
             else if (fmt != null && fmt.contains("-oG")) { cmd.add("-oG"); cmd.add("nmap_out.txt"); }
@@ -643,12 +670,13 @@ public class CyberCoreApp extends OSApplication {
         ButtonGroup bg = new ButtonGroup();
         bg.add(modeConnect); bg.add(modeListen);
 
-        JTextField host  = field("192.168.1.1");
+        JTextField host  = field("127.0.0.1");
+        JPanel hostSelector = createTargetDeviceSelector(host);
         JTextField port  = field("4444");
         JComboBox<String> proto = combo(new String[]{"TCP", "UDP"});
 
         addRow(p, "Mode:", hbox(modeConnect, modeListen));
-        addRow(p, "Host:", host);
+        addRow(p, "Host / Device:", hostSelector);
         addRow(p, "Port:", port);
         addRow(p, "Protocol:", proto);
 
@@ -670,7 +698,8 @@ public class CyberCoreApp extends OSApplication {
         JPanel p = cfgGrid();
         p.putClientProperty("toolId", "nuclei");
 
-        JTextField target   = field("https://example.com");
+        JTextField target   = field("http://127.0.0.1:8080");
+        JPanel targetSelector = createTargetDeviceSelector(target);
         JTextField tmplDir  = field("");
         JButton browse      = smallBtn("Browse");
         JTextField tagsField = field("");
@@ -688,7 +717,7 @@ public class CyberCoreApp extends OSApplication {
                 tmplDir.setText(fc.getSelectedFile().getAbsolutePath());
         });
 
-        addRow(p, "Target:", target);
+        addRow(p, "Target URL / Device:", targetSelector);
         addRow(p, "Templates:", hbox(tmplDir, browse));
         addRow(p, "Severity:", hbox(sevInfo, sevLow, sevMed, sevHigh, sevCrit));
         addRow(p, "Tags:", tagsField);
@@ -720,12 +749,13 @@ public class CyberCoreApp extends OSApplication {
         JPanel p = cfgGrid();
         p.putClientProperty("toolId", "nikto");
 
-        JTextField target  = field("http://example.com");
+        JTextField target  = field("http://127.0.0.1");
+        JPanel targetSelector = createTargetDeviceSelector(target);
         JCheckBox ssl      = check("Force SSL");
         JTextField tuning  = field("1,2,3,4,5,6,7,8,9");
         JSpinner timeout   = spinner(10, 1, 300);
 
-        addRow(p, "Target URL:", target);
+        addRow(p, "Target URL / Device:", targetSelector);
         addRow(p, "SSL:", ssl);
         addRow(p, "Tuning:", tuning);
         addRow(p, "Timeout (s):", timeout);
@@ -1757,6 +1787,118 @@ public class CyberCoreApp extends OSApplication {
                 BorderFactory.createEmptyBorder(3, 8, 3, 8)));
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return btn;
+    }
+
+    private JPanel createTargetDeviceSelector(JTextField targetField) {
+        JPanel container = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        container.setBackground(PANEL);
+
+        DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+        model.addElement("127.0.0.1 (Localhost)");
+
+        try {
+            JavaOS os = JavaOS.getInstance();
+            if (os != null) {
+                NetworkScannerService net = os.getNetworkScannerService();
+                if (net != null) {
+                    String localIp = net.getLocalIp();
+                    if (localIp != null && !localIp.isEmpty()) {
+                        model.addElement(localIp + " (Host Machine)");
+                    }
+                    String gw = net.getGatewayIp();
+                    if (gw != null && !gw.isEmpty()) {
+                        model.addElement(gw + " (Default Gateway)");
+                    }
+                    String sub = net.getSubnetPrefix();
+                    if (sub != null && !sub.isEmpty()) {
+                        model.addElement(sub + ".0/24 (Subnet Range)");
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        JComboBox<String> combo = new JComboBox<>(model);
+        combo.setBackground(new Color(0x0A, 0x12, 0x1E));
+        combo.setForeground(TEXT);
+        combo.setFont(FONT_SMALL);
+        combo.setPreferredSize(new Dimension(230, 26));
+
+        combo.addActionListener(e -> {
+            String sel = (String) combo.getSelectedItem();
+            if (sel != null && !sel.startsWith("---")) {
+                String ip = sel.split("\\s+")[0].trim();
+                targetField.setText(ip);
+            }
+        });
+
+        JButton btnScan = smallBtn("📡 Scan Nearby Devices");
+        btnScan.setToolTipText("Scan surrounding Wi-Fi, Bluetooth & LAN airwaves for devices");
+        btnScan.addActionListener(e -> {
+            btnScan.setEnabled(false);
+            btnScan.setText("Scanning...");
+            SwingWorker<List<String>, Void> worker = new SwingWorker<>() {
+                @Override
+                protected List<String> doInBackground() {
+                    List<String> results = new ArrayList<>();
+                    try {
+                        JavaOS os = JavaOS.getInstance();
+                        if (os != null) {
+                            NetworkScannerService net = os.getNetworkScannerService();
+                            if (net != null) {
+                                List<WirelessAirDevice> air = net.scanAirwaveDevices();
+                                if (air != null) {
+                                    for (WirelessAirDevice d : air) {
+                                        String addr = (d.ipAddress != null && !d.ipAddress.isEmpty()) ? d.ipAddress : d.macAddress;
+                                        String label = addr + " (" + d.name + " - " + d.deviceCategory + ")";
+                                        if (!results.contains(label)) results.add(label);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception ex) {
+                        results.add("Error scanning: " + ex.getMessage());
+                    }
+                    return results;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        List<String> list = get();
+                        if (!list.isEmpty()) {
+                            boolean hasHeader = false;
+                            for (int i = 0; i < model.getSize(); i++) {
+                                if (model.getElementAt(i).contains("Discovered Nearby Devices")) {
+                                    hasHeader = true; break;
+                                }
+                            }
+                            if (!hasHeader) model.addElement("--- Discovered Nearby Devices ---");
+                            for (String item : list) {
+                                boolean exists = false;
+                                for (int i = 0; i < model.getSize(); i++) {
+                                    if (model.getElementAt(i).equals(item)) {
+                                        exists = true; break;
+                                    }
+                                }
+                                if (!exists) model.addElement(item);
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                    btnScan.setEnabled(true);
+                    btnScan.setText("📡 Scan Nearby Devices");
+                }
+            };
+            worker.execute();
+        });
+
+        container.add(targetField);
+        JLabel lbl = new JLabel("Nearby Device:");
+        lbl.setFont(FONT_SMALL);
+        lbl.setForeground(TEXT2);
+        container.add(lbl);
+        container.add(combo);
+        container.add(btnScan);
+        return container;
     }
 
     private JPanel hbox(JComponent... components) {
